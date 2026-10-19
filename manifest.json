@@ -2,7 +2,7 @@
   "name": "yuanlin-suanliang",
   "slug": "yuanlin-suanliang",
   "displayName": "园林算量 · 苗木统计与铺装面积",
-  "version": "0.4.21",
+  "version": "0.4.22",
   "author": "lis",
   "license": "CC-BY-NC-SA-4.0",
   "entrypoint": "SKILL.md",
@@ -50,5 +50,13 @@
     "qty_dir": "算量/<slug>/",
     "adapter": "cad-file-reader/scripts/qto_p1_link.py",
     "boundary": "只登记输入/输出与缺口，不替代本技能算法、口径与复核"
+  },
+  "locale": {
+    "default": "zh-CN",
+    "languages": [
+      "zh-CN"
+    ],
+    "scope": "Chinese construction and landscape CAD drawings; vocabulary intentionally in Simplified Chinese with English aliases; locale configurable via project plant-library overrides",
+    "extensible": "--plant-library"
   }
 }

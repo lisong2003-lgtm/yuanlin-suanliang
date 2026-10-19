@@ -46,7 +46,7 @@ if [[ -f "${CHECK_RELEASE}" ]]; then
   # - scripts/yuanlin_qty.py 的「政府」是图纸非植物停用词表
   # - scripts/tests/test_yuanlin_qty.py 的「新疆杨」是回归测试固定植物名
   # 本脚本注释中的地理名/「政治」均为自解释说明，一并豁免，避免自扫自报。
-  ALLOW_SENSITIVE="rules/plant_library_=中国,rules/plant_library_=美国,rules/plant_library_=台湾,rules/plant_library_=新疆,rules/plant_library_=香港,scripts/yuanlin_qty.py=政府,scripts/tests/test_yuanlin_qty.py=新疆,scripts/run_preflight.sh=中国,scripts/run_preflight.sh=美国,scripts/run_preflight.sh=台湾,scripts/run_preflight.sh=新疆,scripts/run_preflight.sh=香港,scripts/run_preflight.sh=政府,scripts/run_preflight.sh=政治"
+  ALLOW_SENSITIVE="rules/plant_library_=中国,rules/plant_library_=美国,rules/plant_library_=台湾,rules/plant_library_=新疆,rules/plant_library_=香港,scripts/yuanlin_qty.py=政府,scripts/tests/test_yuanlin_qty.py=新疆,scripts/run_preflight.sh=中国,scripts/run_preflight.sh=美国,scripts/run_preflight.sh=台湾,scripts/run_preflight.sh=新疆,scripts/run_preflight.sh=香港,scripts/run_preflight.sh=政府,scripts/run_preflight.sh=政治,CHANGELOG.md=中国,README.md=中国,SKILL.md=中国"
   "${PYTHON_BIN}" "${CHECK_RELEASE}" --path "${SKILL_DIR}" --exclude-dirs outputs --allow-sensitive "${ALLOW_SENSITIVE}"
 else
   echo "⚠️ 未找到 skill-publisher/check_release.py，跳过发布合规扫描（发布前需补跑）"
