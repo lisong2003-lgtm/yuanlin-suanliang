@@ -2,7 +2,7 @@
 name: yuanlin-suanliang
 slug: yuanlin-suanliang
 displayName: 园林算量 · 苗木统计与铺装面积
-version: 0.4.22
+version: 0.4.23
 locale: zh-CN
 localeScope: 面向中国建筑工程与园林景观图纸；规则、植物词库与输出证据默认使用简体中文，并对常见英文图例做别名兼容；地域性词表按中文/本地场景设计，其他语言可通过 --plant-library 传入项目词库扩展。
 author: lis

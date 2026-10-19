@@ -1547,12 +1547,24 @@ def export_p23_evidence(rows, evidence_dir, source=""):
     return written
 
 # ---------- 落盘 ----------
+# 公式注入防护：图纸/候选文本里的单元格若以 = + - @ 或制表符/换行开头，
+# 写 CSV/XLSX 时统一加前导单引号，避免 Excel 把不可信内容当公式执行；仅对报告落盘生效。
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _safe_cell(v):
+    s = str(v)
+    if s and s[0] in _FORMULA_PREFIXES:
+        return "'" + s + ""
+    return v
+
+
 def write_csv(path, fieldnames, rows):
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         for r in rows:
-            w.writerow({k: r.get(k, "") for k in fieldnames})
+            w.writerow({k: _safe_cell(r.get(k, "")) for k in fieldnames})
 
 
 def write_xlsx(path, sheets):
@@ -1566,7 +1578,7 @@ def write_xlsx(path, sheets):
         ws = wb.create_sheet(name)
         ws.append(headers)
         for r in rows:
-            ws.append([r.get(k, "") for k in headers])
+            ws.append([_safe_cell(r.get(k, "")) for k in headers])
     wb.save(path)
     return True
 
