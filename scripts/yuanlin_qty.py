@@ -6,7 +6,18 @@
 """
 from __future__ import annotations
 
+try:
+    import os as _boot_os, sys as _boot_sys
+    _boot_sys.path.insert(0, _boot_os.path.dirname(_boot_os.path.abspath(__file__)))
+    import pyboot as _boot_pyboot
+    _boot_pyboot.ensure_utf8_io()
+except Exception:
+    pass
+
+
 import argparse, copy, csv, json, math, os, re, sys
+
+import i18n
 from pathlib import Path
 
 SCHEMA = "yuanlin-suanliang/v0"
@@ -1584,21 +1595,24 @@ def write_xlsx(path, sheets):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="园林概算底稿候选复算器")
-    ap.add_argument("--landscape", type=Path, help="cad-file-reader landscape-geometry 输出 JSON")
-    ap.add_argument("--scan", type=Path, help="cad_scan --with-geom --with-geom-layer --detail-json JSON")
-    ap.add_argument("--rules", type=Path, help="项目规则 JSON")
+    raw = list(sys.argv[1:] if argv is None else argv)
+    lang = i18n.argv_lang(raw)
+    ap = argparse.ArgumentParser(description="Yuanlin QTO (plants + paving) budget-candidate recomputer." if lang == "en" else "园林概算底稿候选复算器")
+    i18n.add_lang_arg(ap, default=lang)
+    ap.add_argument("--landscape", type=Path, help="cad-file-reader landscape-geometry JSON" if lang == "en" else "cad-file-reader landscape-geometry 输出 JSON")
+    ap.add_argument("--scan", type=Path, help="cad_scan --with-geom --with-geom-layer --detail-json JSON" if lang == "en" else "cad_scan --with-geom --with-geom-layer --detail-json JSON")
+    ap.add_argument("--rules", type=Path, help="project rules JSON" if lang == "en" else "项目规则 JSON")
     ap.add_argument("--out-dir", type=Path, default=Path("./outputs"))
     ap.add_argument("--project", default="")
-    ap.add_argument("--scale", type=float, help="图纸比例 1:S，覆盖自动检测")
-    ap.add_argument("--drawing-mm-per-unit", type=float, help="图纸单位对应毫米数，默认自动检测(mm=1/m=1000)")
+    ap.add_argument("--scale", type=float, help="drawing scale 1:S (overrides autodetect)" if lang == "en" else "图纸比例 1:S，覆盖自动检测")
+    ap.add_argument("--drawing-mm-per-unit", type=float, help="drawing mm per unit (default autodetect: mm=1/m=1000)" if lang == "en" else "图纸单位对应毫米数，默认自动检测(mm=1/m=1000)")
     ap.add_argument("--dedupe-tolerance", type=float)
-    ap.add_argument("--paving-all-geometry", action="store_true", help="图层名缺失时对全部几何做闭环候选（只能作需核对）")
-    ap.add_argument("--dxf-block-paving", type=Path, help="可选：从 DXF 的 INSERT 块内提取铺装闭合 LWPOLYLINE/POLYLINE，补 cad_scan 模型空间几何缺口；结果强制 P3")
-    ap.add_argument("--dxf-block-refs", type=Path, help="可选：DXF 块引用坐标回退，同名块按坐标去重，P2 可升级为 P0/P1")
-    ap.add_argument("--evidence-dir", type=Path, help="可选：为每条 P2/P3 导出本机坐标片段；P0/P1 不导出")
-    ap.add_argument("--plant-library", type=Path, action="append", help="可选：本地植物名称参考库（.json/.csv/.xlsx），只取中文名→大类，忽略规格与单价；可重复指定")
-    ap.add_argument("--no-default-plant-library", action="store_true", help="不加载内置常用园林植物名称参考库")
+    ap.add_argument("--paving-all-geometry", action="store_true", help="closure candidates over all geometry when layer names are missing (review-only)" if lang == "en" else "图层名缺失时对全部几何做闭环候选（只能作需核对）")
+    ap.add_argument("--dxf-block-paving", type=Path, help="optional: extract paving closed LWPOLYLINE/POLYLINE from DXF INSERT blocks to fill gaps (forced P3)" if lang == "en" else "可选：从 DXF 的 INSERT 块内提取铺装闭合 LWPOLYLINE/POLYLINE，补 cad_scan 模型空间几何缺口；结果强制 P3")
+    ap.add_argument("--dxf-block-refs", type=Path, help="optional: DXF INSERT coordinates fallback, dedupe same-name blocks (P2 may become P0/P1)" if lang == "en" else "可选：DXF 块引用坐标回退，同名块按坐标去重，P2 可升级为 P0/P1")
+    ap.add_argument("--evidence-dir", type=Path, help="optional: export local coordinate snippets for P2/P3 (not for P0/P1)" if lang == "en" else "可选：为每条 P2/P3 导出本机坐标片段；P0/P1 不导出")
+    ap.add_argument("--plant-library", type=Path, action="append", help="optional: local plant-name library (.json/.csv/.xlsx), name->category only; repeatable" if lang == "en" else "可选：本地植物名称参考库（.json/.csv/.xlsx），只取中文名→大类，忽略规格与单价；可重复指定")
+    ap.add_argument("--no-default-plant-library", action="store_true", help="do not load the built-in common plant-name library" if lang == "en" else "不加载内置常用园林植物名称参考库")
     args = ap.parse_args(argv)
     cfg = json.loads(Path(__file__).parent.parent.joinpath("rules", "rules.json").read_text(encoding="utf-8")) if Path(__file__).parent.parent.joinpath("rules", "rules.json").exists() else {}
     merged = copy.deepcopy(DEFAULT_RULES)
@@ -1642,7 +1656,7 @@ def main(argv=None):
     landscape = json.loads(args.landscape.read_text(encoding="utf-8")) if args.landscape else None
     scan = json.loads(args.scan.read_text(encoding="utf-8")) if args.scan else None
     if not landscape and not scan:
-        ap.error("至少提供 --landscape 或 --scan 之一")
+        ap.error("provide at least one of --landscape or --scan" if lang == "en" else "至少提供 --landscape 或 --scan 之一")
     args.out_dir.mkdir(parents=True, exist_ok=True)
     dxf_info = None
     if args.dxf_block_paving:
@@ -1768,7 +1782,8 @@ def main(argv=None):
         lines.append(f"| ... | ... | 其余 {len(pav)-200} 行见 CSV/xlsx | ... | ... | ... | ... | ... |")
     lines += ["", "## 使用边界", "", BOUNDARY]
     (args.out_dir / "园林概算报告.md").write_text("\n".join(lines), encoding="utf-8")
-    print(json.dumps({"ok": True, "schema": SCHEMA, "project": args.project,
+    print(json.dumps({"status": "ok", "ok": True,
+                      "message": ("generated" if lang == "en" else "已生成"), "schema": SCHEMA, "project": args.project,
                       "plants": len(plants), "design_rows": len(design_rows), "plan_rows": len(plan_rows),
                       "paving_rows": len(pav), "review_rows": len(review), "main_area_m2": round(main_area, 4),
                       "candidate_area_m2": round(candidate_area, 4), "net_area_m2": round(net_area, 4), "xlsx": bool(xlsx),
