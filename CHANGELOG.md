@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.27
+
+- **修复** `self_test.py` 在非 Windows 平台对缺失 `.cmd` 判为 SKIP 而非 FAIL（轻量包不随附 .cmd），自检由 FAILED 转为 SELF_TEST_OK。
+- **新增** `scripts/runtime_env.sh`、`requirements.txt`、Windows 启动器 `yuanlin_qty.cmd` / `yuanlin_statesync.cmd`。
+- **修复** 底座探测与自动安装落点硬编码 `~/.codex`；`.sh` 缺可执行位；`scripts/tests/` 缺 `__init__.py`。
+- **文档** 标题版本由 v0.4.13 更正为 v0.4.27；命令统一改为 `bash scripts/*.sh`。
+- **修复（跨 Agent）** 底座/总线探测与 `setup.sh` 一致化处理，保留 `~/.codex`、`~/.claude` 回退。
+
 ## 0.4.26 (2026-10-23)
 - 修复 SkillHub 版 Windows 无 `.cmd` 时的接线说明：改为 `python scripts/*_statesync.py` 等价调用（bus 安装用 `python install_py.py --apply`）；GitHub 完整包保留 `.cmd`。平台发布调整，算法/契约/口径不变。
 

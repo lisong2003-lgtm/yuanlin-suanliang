@@ -18,6 +18,7 @@ except Exception:
     pass
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -75,6 +76,10 @@ def main() -> int:
         check(("scripts" in m) and ("references" in m), "manifest 含 scripts/references")
 
     for rel in CHECK_FILES:
+        # 轻量包（SkillHub）不随附 Windows .cmd 启动器：非 Windows 平台跳过而非判失败
+        if rel.endswith(".cmd") and os.name != "nt":
+            print(f"SKIP  Windows 启动器不在轻量包内 {rel}（当前平台 {os.name}，用 python {rel[:-4]}.py 等价调用）")
+            continue
         check((ROOT / rel).is_file(), f"文件存在 {rel}")
 
     rc, out = run([PYTHON, str(HERE / "smoke_utf8_json.py")], HERE)

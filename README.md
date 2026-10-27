@@ -24,14 +24,14 @@ scripts/cad_scan.sh 景观图.dwg --with-mtext --with-attrib --with-insert --wit
 scripts/cad_landscape_geometry.sh 景观详情.json --out-dir 园林识图
 
 # 2) 本技能复算
-python3 scripts/yuanlin_qty.py \
+bash scripts/yuanlin_qty.sh \
   --landscape 园林识图/景观详情.landscape.json \
   --scan 景观详情.json \
   --out-dir ./园林概算 \
   --project "项目名"
 
 # 3) 可选 DXF 块内铺装回退
-python3 scripts/yuanlin_qty.py \
+bash scripts/yuanlin_qty.sh \
   --landscape 园林识图/景观详情.landscape.json \
   --scan 景观详情.json \
   --dxf-block-paving 景观图.dxf \
@@ -39,7 +39,7 @@ python3 scripts/yuanlin_qty.py \
   --project "项目名"
 
 # 4) 可选 DXF 块引用坐标去重
-python3 scripts/yuanlin_qty.py \
+bash scripts/yuanlin_qty.sh \
   --landscape 园林识图/景观详情.landscape.json \
   --scan 景观详情.json \
   --dxf-block-refs 景观图.dxf \
@@ -47,7 +47,7 @@ python3 scripts/yuanlin_qty.py \
   --project "项目名"
 
 # 5) 可选 项目植物名称参考库（只取中文名→大类；忽略规格与单价）
-python3 scripts/yuanlin_qty.py \
+bash scripts/yuanlin_qty.sh \
   --landscape 园林识图/景观详情.landscape.json \
   --scan 景观详情.json \
   --plant-library 项目苗木清单.xlsx \

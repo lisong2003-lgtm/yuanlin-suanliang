@@ -10,8 +10,8 @@ Use for landscape/trees/paving rough takeoff from landscape DWG/DXF or landscape
 
 ## Quick start
 ```bash
-python3 scripts/yuanlin_qty.py --landscape landscape.json --out-dir out
-python3 scripts/yuanlin_qty.py --scan scan.json --plant-library 本地库.csv --out-dir out
+bash scripts/yuanlin_qty.sh --landscape landscape.json --out-dir out
+bash scripts/yuanlin_qty.sh --scan scan.json --plant-library 本地库.csv --out-dir out
 ```
 
 ## Install across the three platforms
