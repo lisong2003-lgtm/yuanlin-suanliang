@@ -1,12 +1,23 @@
 # Changelog
 
+## 0.4.30
+
+- **更新发布** 补 CHANGELOG 详细条目与 README.en 版本号；三端（Codex/WorkBuddy/发布仓库）同版本同内容再次校验通过。tujian-suanliang 的 manifest tests 仅保留真实存在的 `scripts/self_test.py`（完整 tests 见本机 shangwu-suanliang 商务版）。
+- 算法、契约、权限、SKILL.md 正文与上一版无变化。
+
+## 0.4.29
+
+- **授权与保留** 新增「授权与保留」段落：作者 lis 声明本技能可商用/可再分发/可对外授权，商用前按双许可说明确认是否需联系作者申报。
+- **脱敏（发布合规）** rules 中的公司内部来源字段由「公司知识库/…/规范图集」改为「公开规范与行业通用做法整理」，不再引用公司内部资料路径。
+- **版本对齐** 本机 `~/.codex/skills`、`~/.workbuddy/skills` 与发布仓库同步同版本；算法、契约、兼容性与上一版一致，未改业务逻辑。
+
 ## 0.4.27
 
 - **修复** `self_test.py` 在非 Windows 平台对缺失 `.cmd` 判为 SKIP 而非 FAIL（轻量包不随附 .cmd），自检由 FAILED 转为 SELF_TEST_OK。
 - **新增** `scripts/runtime_env.sh`、`requirements.txt`、Windows 启动器 `yuanlin_qty.cmd` / `yuanlin_statesync.cmd`。
-- **修复** 底座探测与自动安装落点硬编码 `~/.codex`；`.sh` 缺可执行位；`scripts/tests/` 缺 `__init__.py`。
+- **修复** 底座探测与自动安装落点硬编码 `$HOME/.codex`；`.sh` 缺可执行位；`scripts/tests/` 缺 `__init__.py`。
 - **文档** 标题版本由 v0.4.13 更正为 v0.4.27；命令统一改为 `bash scripts/*.sh`。
-- **修复（跨 Agent）** 底座/总线探测与 `setup.sh` 一致化处理，保留 `~/.codex`、`~/.claude` 回退。
+- **修复（跨 Agent）** 底座/总线探测与 `setup.sh` 一致化处理，保留 `$HOME/.codex`、`~/.claude` 回退。
 
 ## 0.4.26 (2026-10-23)
 - 修复 SkillHub 版 Windows 无 `.cmd` 时的接线说明：改为 `python scripts/*_statesync.py` 等价调用（bus 安装用 `python install_py.py --apply`）；GitHub 完整包保留 `.cmd`。平台发布调整，算法/契约/口径不变。

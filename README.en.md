@@ -1,6 +1,6 @@
 # Landscape Quantity Takeoff (Plants & Pavement)
 
-> yuanlin-suanliang (yuanlin-suanliang) v0.4.23 · overseas-friendly lightweight layer. 中文版见 [README.md](README.md).
+> yuanlin-suanliang (yuanlin-suanliang) v0.4.30 · overseas-friendly lightweight layer. 中文版见 [README.md](README.md).
 
 ## What it is
 Based on cad-file-reader landscape candidates, classifies plants by Chinese/English legend, parses plant-table design baselines, computes pavement area by closed regions, and outputs a budget draft and material-plan draft with usage boundaries, confidence tiers (P0-P3) and evidence coordinates.
