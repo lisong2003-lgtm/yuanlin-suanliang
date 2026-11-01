@@ -40,7 +40,6 @@ CHECK_FILES: list[str] = [
         "scripts/yuanlin_qty.cmd",
         "rules/rules.json",
         "templates/项目专属规则示例.json",
-        "scripts/tests/test_yuanlin_qty.py"
 ]
 CLI_HELP: list[str] = [
         "yuanlin_qty.py"
@@ -80,6 +79,10 @@ def main() -> int:
         if rel.endswith(".cmd") and os.name != "nt":
             print(f"SKIP  Windows 启动器不在轻量包内 {rel}（当前平台 {os.name}，用 python {rel[:-4]}.py 等价调用）")
             continue
+        # 轻量包不随附开发期单测（scripts/tests/）：缺失时跳过而非判失败
+        if "/tests/" in f"/{rel}" and not (ROOT / rel).is_file():
+            print(f"SKIP  开发期单测不在轻量包内 {rel}")
+            continue
         check((ROOT / rel).is_file(), f"文件存在 {rel}")
 
     rc, out = run([PYTHON, str(HERE / "smoke_utf8_json.py")], HERE)
@@ -93,6 +96,19 @@ def main() -> int:
         check(rc == 0, f"CLI --help rc=0  {cli}")
         if rc != 0:
             print(out)
+
+    # 真实单元测试（算法级回归）：轻量包未随附 tests 目录时跳过，不判失败。
+    # 直接在进程内 discover，拿到 result.testsRun，避免解析 unittest 文本输出。
+    tests_dir = HERE / "tests"
+    if tests_dir.is_dir() and any(tests_dir.glob("test_*.py")):
+        import unittest
+
+        # top_level_dir 必须等于 start_dir：tests/ 无 __init__.py，否则 3.13 报不可导入。
+        suite = unittest.TestLoader().discover(
+            start_dir=str(tests_dir), pattern="test_*.py", top_level_dir=str(tests_dir)
+        )
+        result = unittest.TextTestRunner(verbosity=0, stream=sys.stdout).run(suite)
+        check(result.wasSuccessful(), f"单元测试 discover（{result.testsRun} 项）")
 
     if FAILURES:
         print("SELF_TEST_FAILED", FAILURES)
