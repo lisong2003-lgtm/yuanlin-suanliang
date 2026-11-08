@@ -39,11 +39,12 @@ echo "=== 1/3 全量自测 ==="
 echo "=== 2/3 发布合规扫描 ==="
 CHECK_RELEASE="${HOME}/.codex/skills/skill-publisher/scripts/check_release.py"
 if [[ -f "${CHECK_RELEASE}" ]]; then
-  # 合规豁免说明（均为数据/算法词，非政治涉政）：
-  # - outputs/ 为本地内部报告（含本机工作路径），不随发布包上传 → 排除目录扫描
-  # - rules/plant_library_*.json 里的 中国/美国/台湾/新疆/香港 是植物品种地理名（如 新疆杨、美国红枫、台湾相思、香港崖角藤）
-  # - scripts/yuanlin_qty.py 的「政府」是图纸非植物停用词表
-  # 本脚本注释中的地理名/「政治」均为自解释说明，一并豁免，避免自扫自报。
+  # 数据/算法词豁免表：rules/release-sensitive.allow；outputs/ 为本地内部报告，不随包上传。
+  ALLOW_FILE="${SKILL_DIR}/rules/release-sensitive.allow"
+  ALLOW_SENSITIVE=""
+  if [[ -f "${ALLOW_FILE}" ]]; then
+    ALLOW_SENSITIVE="$(tr '\n' ',' < "${ALLOW_FILE}" | sed 's/,$//')"
+  fi
   "${PYTHON_BIN}" "${CHECK_RELEASE}" --path "${SKILL_DIR}" --exclude-dirs outputs --allow-sensitive "${ALLOW_SENSITIVE}"
 else
   echo "⚠️ 未找到 skill-publisher/check_release.py，跳过发布合规扫描（发布前需补跑）"
