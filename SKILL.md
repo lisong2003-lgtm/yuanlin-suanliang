@@ -2,14 +2,14 @@
 name: yuanlin-suanliang
 slug: yuanlin-suanliang
 displayName: 园林算量 · 苗木统计与铺装面积
-version: 0.4.36
+version: 0.4.37
 platforms: [macos, windows, linux]
 locale: zh-CN
 locales: [zh-CN, en-US]
 localeScope: 面向中文建筑工程与园林景观图纸；规则、植物词库与输出证据默认使用简体中文，并对常见英文图例做别名兼容；地域性词表按中文/本地场景设计，其他语言可通过 --plant-library 传入项目词库扩展。
 author: lis
 license: CC-BY-NC-SA-4.0
-description: "园林算量：按中英文图例统计苗木、解析苗木表设计基线、按闭合区域算铺装面积，可展开 DXF 块内铺装；输出带使用边界、P0–P3 置信分层和证据坐标的概算底稿与物资计划草稿。不替代设计复核/放线/点树/结算。"
+description: "园林统计苗木、算铺装面积；不替代结算。触发词：园林算量、苗木、绿化。"
 i18n:
   en: README.en.md
   zh: README.md
