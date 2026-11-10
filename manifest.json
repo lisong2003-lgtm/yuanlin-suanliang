@@ -2,20 +2,12 @@
   "name": "yuanlin-suanliang",
   "slug": "yuanlin-suanliang",
   "displayName": "园林算量 · 苗木统计与铺装面积",
-  "version": "0.4.37",
+  "version": "0.4.40",
+  "entry_policy": "contract-only",
   "author": "lis",
   "license": "CC-BY-NC-SA-4.0",
   "entry": "SKILL.md",
   "entrypoint": "SKILL.md",
-  "depends": {
-    "skills": [
-      "cad-file-reader>=0.28.1"
-    ],
-    "python_packages": [
-      "openpyxl(optional, xlsx)",
-      "ezdxf(optional, DXF 块引用坐标与 HATCH/ARC/Bulge 铺装回退；cad-file-reader vendor 已随底座提供)"
-    ]
-  },
   "scripts": [
     "scripts/lint_cross_platform.py",
     "scripts/pyboot.py",
@@ -28,7 +20,10 @@
     "scripts/yuanlin_qty.sh",
     "scripts/yuanlin_statesync.py",
     "scripts/yuanlin_statesync.sh",
-    "scripts/yuanlin_statesync.cmd"
+    "scripts/yuanlin_statesync.cmd",
+    "scripts/contract_guard.py",
+    "scripts/contract_support.py",
+    "scripts/entry_gate.py"
   ],
   "references": [
     ".gitignore",
@@ -88,5 +83,12 @@
     "macos",
     "windows",
     "linux"
-  ]
+  ],
+  "requires": {
+    "skills": {
+      "cad-file-reader": ">=0.41.0",
+      "lis-skill-bus": ">=0.1.11"
+    },
+    "python": ">=3.10"
+  }
 }

@@ -7,8 +7,8 @@ C：仅底座 landscape——块级实例按 instance_count 计数；图例文�
 D：苗木表 + 图例文字——设计表基线、平面图块级计数、P2 文字候选三层分离。
 E：无图层 + --paving-all-geometry——强算候选 P3，不计入主线。
 F：中英文植物块/块引用候选——底座计数 P1、仅块引用 P2、systems 种植文字 P2。
-G：DXF 块内闭合 POLYLINE——INSERT 变换后 12m²，强制 P3，不计入主线。
-H：DXF 回退增强——HATCH 矩形、ARC 半圆、Bulge 多段线合计约 35.142m²，强制 P3，不计入主线。
+G：原始 DXF 块内铺装入口——必须 exit 23，不再内置解析。
+H：原始 DXF 增强铺装入口——必须 exit 23，不再内置解析。
 I：项目规则增强——exclude_frame_bbox 排除标注框后强算候选由 2m² 降至 1m²，仍 P3。
 J：苗木表变体——图例编号、序号/棵、名称及规格/m² 三类表头均可解析。
 K：苗木冲突——设计表10株/平面8株，输出差异2并降P3。
@@ -26,22 +26,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PY = sys.executable
 HAS_OPENPYXL = importlib.util.find_spec("openpyxl") is not None
-VENDOR = Path.home() / ".codex" / "skills" / "cad-file-reader" / "vendor"
-if VENDOR.exists():
-    sys.path.insert(0, str(VENDOR))
-try:
-    import ezdxf  # type: ignore
-    from ezdxf.entities.boundary_paths import PolylinePath  # type: ignore
-    HAS_EZDXF = True
-except Exception:
-    HAS_EZDXF = False
-
-
 def run(args, project="自测"):
     cmd = [PY, str(ROOT / "scripts/yuanlin_qty.py"), "--out-dir", str(args["out"]), "--project", project]
     for key in ("scan", "landscape", "rules", "dxf_block_paving", "dxf_block_refs", "evidence_dir"):
         if args.get(key):
             cmd += [f"--{key.replace('_', '-')}", str(args[key])]
+    # 自测输入均为合成 scan/landscape/DXF，没有 reader 契约：按手工来源显式放行。
+    if not args.get("formal"):
+        cmd.append("--allow-manual")
     if args.get("force"):
         cmd.append("--paving-all-geometry")
     for lib in (args.get("plant_library") or []):
@@ -52,6 +44,19 @@ def run(args, project="自测"):
     assert r.returncode == 0, r.stderr
     payload = json.loads(r.stdout.strip().splitlines()[-1])
     return payload
+
+
+def run_gate(args, project="自测", want=23):
+    """原始图纸入口必须被统一闸门拒绝，不得回退到内置解析。"""
+    cmd = [PY, str(ROOT / "scripts/yuanlin_qty.py"), "--out-dir", str(args["out"]), "--project", project]
+    for key in ("scan", "landscape", "rules", "dxf_block_paving", "dxf_block_refs", "evidence_dir"):
+        if args.get(key):
+            cmd += [f"--{key.replace('_', '-')}", str(args[key])]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    text = (r.stdout + r.stderr).strip()
+    assert r.returncode == want, f"exit={r.returncode}（期望 {want}）: {text}"
+    assert "不直接识图" in text, text
+    return text
 
 
 def read_csv(path):
@@ -114,6 +119,25 @@ def case_b(tmp):
     total = next(r for r in pav if r["面序号"] == "SUM")
     assert total["实际铺装面积_m2"] == "20.0", total
     return "B: 5000×4000mm 比例1:1 → 铺装20m²"
+
+
+def case_v(tmp):
+    """V：模型空间 1:500 真图——打印比例不得再次放大面积。"""
+    segs = [[0, 0, 5000, 0], [5000, 0, 5000, 4000], [5000, 4000, 0, 4000], [0, 4000, 0, 0]]
+    scan = {"source_file": "synthetic_modelspace_1_500.dwg", "records": [],
+            "text": [{"type": "TEXT", "kind": "TEXT", "text": "总平面图 比例 1:500"}],
+            "geometry_segments": [segs], "geometry_layers": [["园路"] * len(segs)]}
+    sp = tmp / "v_scan.json"
+    write_json(sp, scan)
+    out = tmp / "v_out"
+    info = run({"scan": sp, "out": out}, "用例V-模型空间比例")
+    pav = read_csv(out / "园林铺装面积.csv")
+    total = next(r for r in pav if r["面序号"] == "SUM")
+    assert total["实际铺装面积_m2"] == "20.0", total
+    assert info["scale"] == 500 and info["scale_applied"] == 1.0, info
+    summary = {r["指标"]: r["值"] for r in read_csv(out / "汇总.csv")}
+    assert summary["面积实际用比例"] == "1:1", summary
+    return "V: 模型空间1:500→面积仍按1:1(20m²)，只记录打印比例"
 
 
 def case_c(tmp):
@@ -235,55 +259,17 @@ def case_f(tmp):
 
 
 def case_g(tmp):
-    if not HAS_EZDXF:
-        return "G: SKIP（ezdxf 不可用）"
-    doc = ezdxf.new("R2010")
-    doc.header["$INSUNITS"] = 6
-    block = doc.blocks.new(name="Structure - Paving")
-    block.add_polyline2d([(0, 0), (4, 0), (4, 3), (0, 3)], close=True)
-    doc.modelspace().add_blockref("Structure - Paving", (10, 20))
     dxf = tmp / "g_block_paving.dxf"
-    doc.saveas(dxf)
-    scan = {"source_file": "synthetic_block_paving.dxf", "geometry_segments": [[]], "geometry_layers": [[]], "text": [{"kind": "TEXT", "text": "比例 1:1"}]}
-    sp = tmp / "g_scan.json"
-    write_json(sp, scan)
-    out = tmp / "g_out"
-    info = run({"scan": sp, "dxf_block_paving": dxf, "out": out}, "用例G")
-    pav = read_csv(out / "园林铺装面积.csv")
-    assert info["main_area_m2"] == 0.0 and info["candidate_area_m2"] == 12.0, info
-    assert any(r["面序号"] == "SUM" and r["置信分层"] == "P3" and r["final_quantity"] == "False" for r in pav), pav
-    return "G: DXF块内POLYLINE变换→12m² P3候选，不计主线"
+    dxf.write_text("0\nSECTION\n0\nENDSEC\n0\nEOF\n", encoding="ascii")
+    run_gate({"dxf_block_paving": dxf, "out": tmp / "g_out"}, "用例G")
+    return "G: --dxf-block-paving 原始 DXF 入口 exit 23"
 
 
 def case_h(tmp):
-    if not HAS_EZDXF:
-        return "H: SKIP（ezdxf 不可用）"
-    doc = ezdxf.new("R2010")
-    doc.header["$INSUNITS"] = 6
-    msp = doc.modelspace()
-    hatch = msp.add_hatch()
-    hatch.paths.append(PolylinePath.from_vertices([(0, 0), (10, 0), (10, 2), (0, 2)], is_closed=True))
-    hatch.dxf.layer = "景观铺地"
-    msp.add_arc((20, 0), radius=math.sqrt(2), start_angle=0, end_angle=180).dxf.layer = "景观铺地"
-    r = math.sqrt(24 / math.pi)
-    pl = msp.add_lwpolyline([(-r, 0), (r, 0)], close=True)
-    pl.set_points([(-r, 0, 0, 0, 1), (r, 0, 0, 0, 0)], format="xyseb")
-    pl.dxf.layer = "景观铺地"
     dxf = tmp / "h_enhanced_paving.dxf"
-    doc.saveas(dxf)
-    scan = {"source_file": "synthetic_enhanced_paving.dxf", "geometry_segments": [[]], "geometry_layers": [[]],
-            "text": [{"kind": "TEXT", "text": "比例 1:1"}]}
-    sp = tmp / "h_scan.json"
-    write_json(sp, scan)
-    out = tmp / "h_out"
-    info = run({"scan": sp, "dxf_block_paving": dxf, "out": out}, "用例H")
-    pav = read_csv(out / "园林铺装面积.csv")
-    assert info["main_area_m2"] == 0.0, info
-    assert abs(info["candidate_area_m2"] - (20 + math.pi + 12)) < 0.15, info
-    sum_rows = [r for r in pav if r["面序号"] == "SUM"]
-    assert sum_rows and all(r["置信分层"] == "P3" and r["final_quantity"] == "False" for r in sum_rows), sum_rows
-    assert all(r["计入主线"] == "否" for r in sum_rows), sum_rows
-    return f"H: HATCH/ARC/Bulge→{info['candidate_area_m2']:.3f}m² P3候选，不计主线"
+    dxf.write_text("0\nSECTION\n0\nENDSEC\n0\nEOF\n", encoding="ascii")
+    run_gate({"dxf_block_paving": dxf, "out": tmp / "h_out"}, "用例H")
+    return "H: --dxf-block-paving 增强铺装入口仍 exit 23"
 
 
 def case_i(tmp):
@@ -374,18 +360,10 @@ def case_l(tmp):
     assert info["drawing_mm_per_unit"] == 1 and info["drawing_unit_source"] == "默认", info
     summary = {r["指标"]: r["值"] for r in read_csv(out / "汇总.csv")}
     assert summary["比例判定来源"] == "图纸文字" and summary["图纸单位判定来源"] == "默认", summary
-    if not HAS_EZDXF:
-        return "L: 图纸文字比例来源 PASS；DXF SKIP"
-    doc = ezdxf.new("R2010")
-    doc.header["$INSUNITS"] = 6
     dxf = tmp / "l_units.dxf"
-    doc.saveas(dxf)
-    out2 = tmp / "l_out_dxf"
-    info2 = run({"scan": sp, "dxf_block_paving": dxf, "out": out2}, "用例L-DXF")
-    assert info2["drawing_mm_per_unit"] == 1000 and info2["drawing_unit_source"] == "DXF INSUNITS", info2
-    summary2 = {r["指标"]: r["值"] for r in read_csv(out2 / "汇总.csv")}
-    assert summary2["图纸单位判定来源"] == "DXF INSUNITS", summary2
-    return "L: 比例文字来源 + DXF INSUNITS来源 PASS"
+    dxf.write_text("0\nSECTION\n0\nENDSEC\n0\nEOF\n", encoding="ascii")
+    run_gate({"dxf_block_paving": dxf, "out": tmp / "l_out_dxf"}, "用例L-DXF")
+    return "L: 比例文字来源 PASS；原始 DXF 单位入口 exit 23"
 
 
 def case_m(tmp):
@@ -406,29 +384,10 @@ def case_m(tmp):
 
 
 def case_n(tmp):
-    scan = {"source_file": "synthetic_block_refs.dwg", "text": [{"kind": "TEXT", "text": "比例 1:1"}],
-            "geometry_segments": [[]], "geometry_layers": [[]],
-            "meta": {"block_refs": {"香樟": 4}}}
-    sp = tmp / "n_scan.json"
-    write_json(sp, scan)
-    if not HAS_EZDXF:
-        return "N: DXF块引用坐标去重 SKIP"
-    doc = ezdxf.new("R2010")
-    msp = doc.modelspace()
-    for x, y in ((0, 0), (10, 0), (20, 0), (0, 0)):
-        msp.add_blockref("香樟", (x, y))
     dxf = tmp / "n_refs.dxf"
-    doc.saveas(dxf)
-    out = tmp / "n_out"
-    info = run({"scan": sp, "dxf_block_refs": dxf, "out": out}, "用例N")
-    assert info["plants"] >= 1, info
-    plant = read_csv(out / "园林苗木统计.csv")
-    r = find(plant, "香樟", "平面图图例")
-    assert float(r["统计数量"]) == 3 and r["置信分层"] == "P0" and r["final_quantity"] == "True", r
-    assert "0,0" in r["证据坐标"] and "10,0" in r["证据坐标"], r
-    summary = {x["指标"]: x["值"] for x in read_csv(out / "汇总.csv")}
-    assert float(summary["平面图块级计数株数(仅P0/P1)"]) == 3, summary
-    return "N: 4次同名块引用去重为3个坐标点，P0进入主线"
+    dxf.write_text("0\nSECTION\n0\nENDSEC\n0\nEOF\n", encoding="ascii")
+    run_gate({"dxf_block_refs": dxf, "out": tmp / "n_out"}, "用例N")
+    return "N: --dxf-block-refs 原始 DXF 入口 exit 23，不再回退解析"
 
 
 def case_o(tmp):
@@ -566,7 +525,7 @@ def case_q(tmp):
 
 def case_r(tmp):
     """R：内置区域植物库（多库自动加载）+ 章节→大类修正；只补分类，不动主线数量。"""
-    names = ("樟子松", "新疆杨", "沙棘", "羊茅")
+    names = ("樟子松", "胡杨", "沙棘", "羊茅")
     blocks = [{"kind": "INSERT", "text": n, "x": i * 2.0, "y": 0.0} for i, n in enumerate(names)]
     scan = {"source_file": "synthetic_nw_region.dwg", "records": blocks,
             "text": blocks + [{"type": "TEXT", "kind": "TEXT", "text": "比例 1:1"}],
@@ -584,7 +543,7 @@ def case_r(tmp):
     info = run({"scan": sp, "out": out_def}, "用例R-内置区域库")
     d = {r["植物名/图例名"]: r for r in read_csv(out_def / "园林苗木统计.csv")}
     assert d["樟子松"]["分类"] == "乔木" and d["樟子松"]["参考库命中"] == "乔木:樟子松", d["樟子松"]
-    assert d["新疆杨"]["分类"] == "乔木", d["新疆杨"]
+    assert d["胡杨"]["分类"] == "乔木", d["胡杨"]
     assert d["沙棘"]["分类"] == "灌木" and d["沙棘"]["参考库命中"] == "灌木:沙棘", d["沙棘"]
     assert d["羊茅"]["分类"] == "地被", d["羊茅"]
     src = " ".join(info["plant_library_sources"])
@@ -711,7 +670,7 @@ def case_u(tmp):
 def main():
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
-        proofs = [case_a(tmp), case_b(tmp), case_c(tmp), case_d(tmp), case_e(tmp), case_f(tmp), case_g(tmp), case_h(tmp), case_i(tmp), case_j(tmp), case_k(tmp), case_l(tmp), case_m(tmp), case_n(tmp), case_o(tmp), case_p(tmp), case_q(tmp), case_r(tmp), case_s(tmp), case_t(tmp), case_u(tmp)]
+        proofs = [case_a(tmp), case_b(tmp), case_c(tmp), case_d(tmp), case_e(tmp), case_f(tmp), case_g(tmp), case_h(tmp), case_i(tmp), case_j(tmp), case_k(tmp), case_l(tmp), case_m(tmp), case_n(tmp), case_o(tmp), case_p(tmp), case_q(tmp), case_r(tmp), case_s(tmp), case_t(tmp), case_u(tmp), case_v(tmp)]
     print("PASS " + " | ".join(proofs))
 
 

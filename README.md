@@ -10,8 +10,8 @@
 
 ## 概况
 
-- 底座依赖：`cad-file-reader >= 0.28.1`（`landscape-geometry` 园林包）。
-- 核心产出：苗木表设计基线、平面图块级计数、无坐标块实例计数、块引用总数 P2、图例文字 P2、铺装面积、DXF 块内铺装 P3、缺项核对、汇总、依据。
+- 底座依赖：`cad-file-reader >= 0.41.0`（`landscape-geometry` 园林包）与 `lis-skill-bus >= 0.1.11`；缺依赖时停止，`--check-deps` 返回 `20`/`21`。
+- 核心产出：苗木表设计基线、平面图块级计数、无坐标块实例计数、块引用总数 P2、图例文字 P2、铺装面积、块内铺装 P3、缺项核对、汇总、依据。图纸解析全部在 `cad-file-reader` 内完成。
 - 定位：概算底稿 + 物资计划草稿；不替代设计复核、放线、点树、竣工计量、对量、结算与正式报价。
 - v0.4.13 重点：分区苗木选型库新增约 700 个中文名→大类（v0.4.12 图块素材库保留）。内置 `rules/plant_library_*.json` 全部默认加载（常用园林植物 349 名 + 西北温带荒漠区 112 名/131 条别名 + 图块素材 311 名 + 分区苗木选型 1022 名/约 700 名新增），另可用 `--plant-library` 叠加项目清单；参考库**只做分类**，不读规格/密度/单价，不自动推断规格或报价。
 
@@ -30,23 +30,7 @@ bash scripts/yuanlin_qty.sh \
   --out-dir ./园林概算 \
   --project "项目名"
 
-# 3) 可选 DXF 块内铺装回退
-bash scripts/yuanlin_qty.sh \
-  --landscape 园林识图/景观详情.landscape.json \
-  --scan 景观详情.json \
-  --dxf-block-paving 景观图.dxf \
-  --out-dir ./园林概算-块铺装候选 \
-  --project "项目名"
-
-# 4) 可选 DXF 块引用坐标去重
-bash scripts/yuanlin_qty.sh \
-  --landscape 园林识图/景观详情.landscape.json \
-  --scan 景观详情.json \
-  --dxf-block-refs 景观图.dxf \
-  --out-dir ./园林概算-块坐标 \
-  --project "项目名"
-
-# 5) 可选 项目植物名称参考库（只取中文名→大类；忽略规格与单价）
+# 3) 可选 项目植物名称参考库（只取中文名→大类；忽略规格与单价）
 bash scripts/yuanlin_qty.sh \
   --landscape 园林识图/景观详情.landscape.json \
   --scan 景观详情.json \
@@ -74,7 +58,7 @@ bash scripts/yuanlin_qty.sh \
 ## 依赖
 
 - Python 3.10+；台账 xlsx 需要 `openpyxl`（缺失时仍输出 CSV/Markdown）。
-- 可选 DXF 块内铺装/块引用坐标回退用 `ezdxf`；`cad-file-reader` vendor 已随底座提供。
+- 本技能不直读 DXF：`--dxf-block-paving` / `--dxf-block-refs` 已停用，传图纸直接退出 `23`；块内铺装与块引用坐标由 reader 契约提供。
 - 无网络依赖；不解析大 DWG，不联网上传图纸。
 
 ## 安全
@@ -87,10 +71,10 @@ bash scripts/yuanlin_qty.sh \
 - 植物分类：内建/项目词库优先，参考库只补缺口；最长命中优先，短名不会盖过更具体的植物名。
 - 平面图图例：有坐标时块级实例去重计数（P0）。
 - 底座无坐标块实例：`instance_count` 保留 P1，标明未逐点去重。
-- DXF 块引用：只有 `--dxf-block-refs` 读到顶层 INSERT 坐标时按同名坐标去重，可计 P0；无坐标总数仍只作 P2 复核候选。
+- 块引用坐标：只有 reader 契约给出顶层 INSERT 坐标时按同名坐标去重，可计 P0；无坐标总数仍只作 P2 复核候选。
 - 识图图例/种植文字：文字出现次数，只作 P2 复核候选，不进主线。
 - 铺装：`面积(m²) = 鞋带面积(图纸单位²) × (图纸单位对应毫米数 × 比例)² ÷ 1e6`，外轮廓相加、洞/内岛按嵌套深度奇偶扣减。
-- DXF 块内铺装与全几何强算：强制 P3，不计入主线。
+- 块内铺装与全几何强算：强制 P3，不计入主线。
 - 置信分层：P0 直接证据 / P1 几何或无坐标计数 / P2 名称或文字推断 / P3 需人工核对。
 
 ## 依据

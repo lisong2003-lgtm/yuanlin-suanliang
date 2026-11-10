@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.40 · 2026-11-10 · S9 发布准备：版本收口
+
+- 版本 patch bump；同步套件最低版本。含 s3 分区植物库索引 v2（1022 名集合不变）与发布窄豁免，未改算量逻辑。
+
+## 0.4.39 · 2026-11-10 · 入口闸门 vendored + DXF 回退参数停用
+
+- **新增 `scripts/entry_gate.py`**（同源 vendor）：`20/21/22/23/24`；`yuanlin_qty.py --check-deps` 缺 reader=`20`、缺 bus=`21`，主入口缺依赖即停。
+- **`--dxf-block-paving` / `--dxf-block-refs` 停用**：传 `.dwg/.dxf/.dwt` 直接退出 `23`，`--allow-manual` 不能绕过；块内铺装/块引用坐标只从 reader 契约读取。
+- **文档修正**：`SKILL.md`、`README.md`、`docs/bus-integration.md` 删除「bus 可选」「DXF 可回退」与 `exit 1` 表述，改为必需接线 + 退出码表。
+- **`manifest.scripts`** 登记 `scripts/entry_gate.py`。
+
+## 0.4.38 · 2026-11-09 · 删除技能内 DXF 解析器
+
+- **删除 `import ezdxf`**：`--dxf-block-paving` / `--dxf-block-refs` 内部转调 reader 的 `cad_landscape_geometry.sh`；reader 缺失 exit 1，不回退本技能解析。
+- **契约识别修正**：`_is_reader_contract()` 按 `contract.schema=cad-file-reader/v0` + `contract.contract_version=cad-contract/v1` 判定，`_doc_provenance()` 同步兼容。
+- **新增**：`--check-deps`、`site_handoff.json`（`specialty=landscape`）、`provenance`/`run_manifest` 输出；恢复 `paving_area_implausible()`。
+- **测试**：21 项 A–U 全 PASS（含块内 POLYLINE 12m²、HATCH/ARC/Bulge 35.050m²，容差内）。
+
 ## 0.4.37 · 2026-11-09 · 常驻注入瘦身
 
 - **description 精简**：技能目录注入的 description 压到 ≤45 字，保留原有触发词与「不做什么」边界；SKILL.md 正文与算法口径未变。
